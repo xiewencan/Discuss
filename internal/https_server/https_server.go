@@ -23,6 +23,6 @@ func init() {
 	GE.POST("/user/sendEmailCode", v1.SendEmailCode)
 	GE.POST("/user/emailLogin", v1.EmailLogin)
 
-	// GE.POST("/register", v1.Register)
+	GE.POST("/register", v1.Register)
 
 }

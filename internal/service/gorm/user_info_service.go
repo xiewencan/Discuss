@@ -5,11 +5,12 @@ import (
 	"discuss/internal/dto/request"
 	"discuss/internal/dto/respond"
 	"discuss/internal/model"
-	"discuss/internal/utils/random"
-
 	emailService "discuss/internal/service/email"
 	myredis "discuss/internal/service/redis"
+	"discuss/internal/utils/random"
+	"discuss/internal/utils/valid"
 	"discuss/pkg/constants"
+	"discuss/pkg/enum/user_info/user_status_enum"
 	"discuss/pkg/zlog"
 
 	// redis "github.com/go-redis/redis/v8"
@@ -159,6 +160,107 @@ func (u *userInfoService) SendEmailCode(email string) (string, int) {
 		return constants.SYSTEM_ERROR, -1
 	}
 	return "验证码发送成功", 0
+}
+
+// checkUserIsAdminOrNot 检验用户是否为管理员
+func (u *userInfoService) checkUserIsAdminOrNot(user model.UserInfo) int8 {
+	return user.IsAdmin
+}
+
+// Register 用户注册
+func (u *userInfoService) Register(req request.RegisterRequest) (string, *respond.LoginRespond, int) {
+	nickname := req.Nickname
+	email := req.Email
+	emailcode := req.EmailCode
+	password := req.Password
+
+	if !valid.IsNicknameValid(nickname) {
+		message := "昵称格式错误"
+		zlog.Error(message)
+		return message, nil, -2
+	}
+	if !valid.IsEmailValid(email) {
+		message := "邮箱格式错误"
+		zlog.Error(message)
+		return message, nil, -2
+	}
+	if !valid.IsPasswordValid(password) {
+		message := "密码过于简单"
+		zlog.Error(message)
+		return message, nil, -2
+	}
+
+	var user model.UserInfo
+	user, exist := u.checkEmailExist(email)
+	switch exist {
+	case -1:
+		message := constants.SYSTEM_ERROR
+		zlog.Error(message)
+		return message, nil, -1
+	case 1:
+		message := "邮箱已存在,请直接登录"
+		zlog.Error(message)
+		return message, nil, -2
+	case 0:
+		key := fmt.Sprintf("email_code_%s", email)
+		code, err := myredis.GetKey(key)
+		if err != nil {
+			message := constants.SYSTEM_ERROR
+			zlog.Error(message)
+			return message, nil, -1
+		}
+		if emailcode == "" {
+			message := "验证码不能为空"
+			zlog.Info(message)
+			return message, nil, -2
+		}
+		if code != emailcode {
+			message := "验证码错误,请重新输入"
+			zlog.Info(message)
+			return message, nil, -2
+		} else {
+			if err := myredis.DelKeyIfExists(key); err != nil {
+				zlog.Error(err.Error())
+				return constants.SYSTEM_ERROR, nil, -1
+			}
+		}
+		var newUser model.UserInfo
+		newUser.Uuid = "U" + random.GetNowAndLenRandomString(11)
+		newUser.Email = email
+		newUser.Password = password
+		newUser.Nickname = nickname
+		newUser.Avatar = "https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png"
+		newUser.CreatedAt = time.Now()
+		newUser.IsAdmin = u.checkUserIsAdminOrNot(newUser)
+		newUser.Status = user_status_enum.NORMAL
+
+		res := dao.GormDb.Create(&newUser)
+		if res.Error != nil {
+			message := constants.SYSTEM_ERROR
+			zlog.Error(message)
+			return message, nil, -1
+		}
+		loginRsp := &respond.LoginRespond{
+			Uuid:      newUser.Uuid,
+			Telephone: newUser.Telephone,
+			Nickname:  newUser.Nickname,
+			Email:     newUser.Email,
+			Avatar:    newUser.Avatar,
+			Gender:    user.Gender,
+			Birthday:  user.Birthday,
+			Signature: user.Signature,
+			IsAdmin:   user.IsAdmin,
+			Status:    user.Status,
+		}
+		year, month, day := user.CreatedAt.Date()
+		loginRsp.CreatedAt = fmt.Sprintf("%d.%d.%d", year, month, day)
+		return "注册成功", loginRsp, 0
+
+	default:
+		message := "未知错误,请稍后再试"
+		zlog.Error(message)
+		return message, nil, -1
+	}
 }
 
 // func (u *userInfoService) checkEmailExist(email string) bool {
