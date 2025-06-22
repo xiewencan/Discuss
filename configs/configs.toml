@@ -1,0 +1,20 @@
+[mainConfig]
+appName = "discuss"
+host = "0.0.0.0"
+port = 8000
+
+[mysqlConfig]
+host = "42.193.106.79"
+port = 3306
+user = "root"
+password = "91931212"
+databasename = "discuss"
+
+[emailConfig]
+host = "smtp.qq.com"
+port = 587
+username = "wencanxie@foxmail.com"
+password = "tbejqnsivzvpgajc"
+
+[logConfig]
+logPath = "D:\\My Projects\\discuss\\log\\discuss.log"
