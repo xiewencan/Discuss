@@ -8,6 +8,7 @@ import (
 type Config struct {
 	MainConfig  MainConfig  `toml:"mainConfig"`
 	MysqlConfig MysqlConfig `toml:"mysqlConfig"`
+	RedisConfig RedisConfig `toml:"redisConfig"`
 	EmailConfig EmailConfig `toml:"emailConfig"`
 	LogConfig   LogConfig   `toml:"logConfig"`
 }
@@ -44,6 +45,13 @@ type MysqlConfig struct {
 	User         string `toml:"user"`
 	Password     string `toml:"password"`
 	DatabaseName string `toml:"databasename"`
+}
+
+type RedisConfig struct {
+	Host     string `toml:"host"`
+	Port     int    `toml:"port"`
+	Password string `toml:"password"`
+	Db       int    `toml:"db"`
 }
 
 type EmailConfig struct {

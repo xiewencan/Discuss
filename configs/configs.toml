@@ -10,6 +10,12 @@ user = "root"
 password = "91931212"
 databasename = "discuss"
 
+[redisConfig]
+host = "42.193.106.79"
+port = 6379
+password = "redis_iRzdGt"
+db = 0
+
 [emailConfig]
 host = "smtp.qq.com"
 port = 587
